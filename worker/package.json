@@ -1,0 +1,23 @@
+{
+  "name": "transport-guidesign-worker",
+  "version": "1.0.0",
+  "description": "Cloudflare Workers backend for Transport Guidesign Generator",
+  "main": "src/index.ts",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "deploy:production": "wrangler deploy --env production"
+  },
+  "keywords": [
+    "cloudflare",
+    "workers",
+    "backend",
+    "api"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250110.0",
+    "wrangler": "^3.107.0"
+  }
+}

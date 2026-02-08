@@ -1,0 +1,11 @@
+name = "transport-guidesign-worker"
+main = "src/index.ts"
+compatibility_date = "2024-01-01"
+
+# Development configuration
+[env.development]
+vars = { ENVIRONMENT = "development" }
+
+# Production configuration
+[env.production]
+vars = { ENVIRONMENT = "production" }
