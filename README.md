@@ -4,7 +4,7 @@ A modern React application for generating transport guide signs, built with cutt
 
 ## 🚀 Tech Stack
 
-- **React 18** - Modern UI library
+- **React 19** - Modern UI library
 - **TypeScript** - Type-safe development
 - **Vite** - Fast build tool with HMR
 - **Tailwind CSS** - Utility-first CSS framework
