@@ -25,12 +25,12 @@ export const IconSelector: React.FC = () => {
         
         // 处理svg文件
         for (const [path, module] of Object.entries(svgModules)) {
-          const iconPath = await module();
+          const resolvedModule = await (module as () => Promise<string>)();
           const iconId = path.split('/').pop()?.replace('.svg', '') || '';
           allIcons.push({
             id: iconId,
             name: iconId,
-            path: iconPath,
+            path: resolvedModule,
             type: 'svg' as const
           });
         }

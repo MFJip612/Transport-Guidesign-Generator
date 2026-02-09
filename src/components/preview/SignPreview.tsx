@@ -1,8 +1,20 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useSign } from '../../context/SignContext';
 
+const svgUrlMap = Object.entries(
+  import.meta.glob('/src/icons/**/*.svg', { query: '?url', import: 'default', eager: true }) as Record<string, string>
+).reduce<Record<string, string>>((acc, [path, url]) => {
+  const iconId = path.split('/').pop()?.replace('.svg', '');
+  if (iconId) {
+    acc[iconId] = url as string;
+  }
+  return acc;
+}, {});
+
+const getSvgUrl = (iconId: string) => svgUrlMap[iconId] || '';
+
 export const SignPreview: React.FC = () => {
-  const { config, icons, addIcon, updateIconPosition, removeIcon } = useSign();
+  const { config, addIcon, updateIconPosition, removeIcon } = useSign();
   const [chineseWidth, setChineseWidth] = useState<number>(0);
   const chineseRef = useRef<HTMLSpanElement>(null);
 
@@ -33,140 +45,6 @@ export const SignPreview: React.FC = () => {
   // 处理图标拖拽
   const handleIconDragStart = (e: React.DragEvent, index: number) => {
     e.dataTransfer.setData('iconIndex', index.toString());
-  };
-
-  // 添加一个函数来获取SVG内容
-  const getSvgContent = async (iconId: string): Promise<string> => {
-    try {
-      const response = await fetch(`/src/icons/${iconId}.svg`);
-      if (!response.ok) {
-        throw new Error(`Failed to load SVG for ${iconId}`);
-      }
-      let svgContent = await response.text();
-      
-      // 移除XML声明，确保SVG内容纯净
-      svgContent = svgContent.replace(/<\?xml[^>]*\?>/g, '');
-      
-      return svgContent;
-    } catch (error) {
-      console.error(`Error loading SVG for ${iconId}:`, error);
-      return `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><text x="12" y="15" text-anchor="middle" font-size="8" fill="currentColor">${iconId.substring(0, 4)}</text></svg>`;
-    }
-  };
-
-  // 在导出前获取所有SVG图标的内容
-  const exportSign = async () => {
-    try {
-      // 获取所有SVG图标的内容
-      const iconsWithSvgContent = await Promise.all(
-        config.icons.map(async (iconPos) => {
-          if (iconPos.iconType === 'svg') {
-            const svgContent = await getSvgContent(iconPos.iconId);
-            return { ...iconPos, svgContent };
-          }
-          return iconPos;
-        })
-      );
-
-      // 更新配置，包含SVG内容
-      const configWithSvgContent = {
-        ...config,
-        icons: iconsWithSvgContent,
-      };
-
-      // 动态导入html2canvas
-      const { html2canvas } = await import('html2canvas');
-      
-      // 获取预览元素
-      const previewElement = document.querySelector('.preview-container') as HTMLElement;
-      if (!previewElement) {
-        throw new Error('找不到预览容器');
-      }
-
-      // 使用html2canvas截取预览
-      const canvas = await html2canvas(previewElement, {
-        backgroundColor: config.template.backgroundColor,
-        scale: 2, // 提高清晰度
-        useCORS: true,
-        allowTaint: true
-      });
-
-      // 转换为数据URL
-      const imageDataUrl = canvas.toDataURL('image/png');
-
-      const response = await fetch(`${API_BASE_URL}/api/export`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          ...configWithSvgContent,
-          screenshot: imageDataUrl
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('导出失败');
-      }
-
-      const data = await response.json();
-      if (data.success) {
-        return data.data.imageUrl;
-      } else {
-        throw new Error(data.error || '导出失败');
-      }
-    } catch (err) {
-      console.error('导出失败:', err);
-      // 备用方案：使用之前的逻辑
-      try {
-        // 为每个图标获取SVG内容
-        const iconsWithSvgContent = await Promise.all(
-          config.icons.map(async (iconPos) => {
-            let svgContent = '';
-            if (iconPos.iconType === 'svg') {
-              const response = await fetch(`/src/icons/${iconPos.iconId}.svg`);
-              if (response.ok) {
-                svgContent = await response.text();
-                svgContent = svgContent.replace(/<\?xml[^>]*\?>/g, '');
-              }
-            }
-            
-            return {
-              ...iconPos,
-              svgContent
-            };
-          })
-        );
-
-        const configWithSvgContent = {
-          ...config,
-          icons: iconsWithSvgContent
-        };
-
-        const response = await fetch(`${API_BASE_URL}/api/export`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(configWithSvgContent),
-        });
-
-        if (!response.ok) {
-          throw new Error('导出失败');
-        }
-
-        const data = await response.json();
-        if (data.success) {
-          return data.data.imageUrl;
-        } else {
-          throw new Error(data.error || '导出失败');
-        }
-      } catch (fallbackErr) {
-        console.error('备用导出方案失败:', fallbackErr);
-        // 失败时返回模拟数据
-        return 'https://example.com/sign.png';
-      }
-    }
   };
 
   const handleIconDrop = (e: React.DragEvent, iconIndex: number) => {
@@ -237,7 +115,7 @@ export const SignPreview: React.FC = () => {
                   {iconPosition.iconType === 'svg' ? (
                     <div style={{ width: '96px', height: '96px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       <img
-                        src={`/src/icons/${iconPosition.iconId}.svg`}
+                        src={getSvgUrl(iconPosition.iconId)}
                         alt={iconPosition.iconId}
                         style={{
                           width: '96px',
@@ -296,7 +174,7 @@ export const SignPreview: React.FC = () => {
                   <div className="w-8 h-8 flex items-center justify-center">
                     {iconPosition.iconType === 'svg' ? (
                       <img
-                        src={`/src/icons/${iconPosition.iconId}.svg`}
+                        src={getSvgUrl(iconPosition.iconId)}
                         alt={iconPosition.iconId}
                         className="w-6 h-6"
                         style={{

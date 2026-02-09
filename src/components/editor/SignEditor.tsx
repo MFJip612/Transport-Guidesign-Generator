@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useSign } from '../../context/SignContext';
 
 export const SignEditor: React.FC = () => {
-  const { config, updateText, updateChineseText, updateEnglishText, updateSize, updateFontSize, addIcon } = useSign();
+  const { config, updateChineseText, updateEnglishText, updateSize, updateFontSize, addIcon } = useSign();
   const [isTextEditorExpanded, setIsTextEditorExpanded] = useState(false);
 
   // 处理文字作为特殊图标添加

@@ -1,6 +1,18 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
 
+const svgUrlMap = Object.entries(
+  import.meta.glob('/src/icons/**/*.svg', { query: '?url', import: 'default', eager: true }) as Record<string, string>
+).reduce<Record<string, string>>((acc, [path, url]) => {
+  const iconId = path.split('/').pop()?.replace('.svg', '');
+  if (iconId) {
+    acc[iconId] = url as string;
+  }
+  return acc;
+}, {});
+
+const getSvgUrl = (iconId: string) => svgUrlMap[iconId] || '';
+
 // 模板类型
 interface Template {
   id: string;
@@ -83,7 +95,7 @@ const defaultConfig: SignConfig = {
 interface SignContextType {
   config: SignConfig;
   templates: Template[];
-  icons: Icon[];
+  icons: IconPosition[];
   isLoading: boolean;
   error: string | null;
   setConfig: React.Dispatch<React.SetStateAction<SignConfig>>;
@@ -93,7 +105,7 @@ interface SignContextType {
   updateEnglishText: (text: string) => void;
   updateSize: (width: number, height: number) => void;
   updateFontSize: (fontSize: number) => void;
-  addIcon: (iconId: string, x: number, y: number) => void;
+  addIcon: (iconId: string, x: number, y: number, iconType?: 'svg' | 'tsx', textContent?: string) => void;
   updateIconPosition: (index: number, x: number, y: number) => void;
   removeIcon: (index: number) => void;
   exportSign: (options: ExportOptions) => Promise<string>;
@@ -197,27 +209,8 @@ export const SignProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }));
   };
 
-  // 添加一个异步函数来获取SVG内容
-  const getSvgContent = async (iconId: string): Promise<string> => {
-    try {
-      const response = await fetch(`/src/icons/${iconId}.svg`);
-      if (!response.ok) {
-        throw new Error(`Failed to load SVG for ${iconId}`);
-      }
-      let svgContent = await response.text();
-      
-      // 移除XML声明，确保SVG内容纯净
-      svgContent = svgContent.replace(/<\?xml[^>]*\?>/g, '');
-      
-      return svgContent;
-    } catch (error) {
-      console.error(`Error loading SVG for ${iconId}:`, error);
-      return `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><text x="12" y="15" text-anchor="middle" font-size="8" fill="currentColor">${iconId.substring(0, 4)}</text></svg>`;
-    }
-  };
-
   // 导出标识
-  const exportSign = async (_options: ExportOptions): Promise<string> => {
+  const exportSign = async (options: ExportOptions): Promise<string> => {
     try {
       // 动态导入html2canvas
       const html2canvas = (await import('html2canvas')).default;
@@ -285,7 +278,7 @@ export const SignProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       value={{
         config,
         templates,
-        icons,
+        icons: config.icons,
         isLoading,
         error,
         setConfig,
