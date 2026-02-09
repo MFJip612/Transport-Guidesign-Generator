@@ -1,18 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
 
-const svgUrlMap = Object.entries(
-  import.meta.glob('/src/icons/**/*.svg', { query: '?url', import: 'default', eager: true }) as Record<string, string>
-).reduce<Record<string, string>>((acc, [path, url]) => {
-  const iconId = path.split('/').pop()?.replace('.svg', '');
-  if (iconId) {
-    acc[iconId] = url as string;
-  }
-  return acc;
-}, {});
-
-const getSvgUrl = (iconId: string) => svgUrlMap[iconId] || '';
-
 // 模板类型
 interface Template {
   id: string;
@@ -95,7 +83,7 @@ const defaultConfig: SignConfig = {
 interface SignContextType {
   config: SignConfig;
   templates: Template[];
-  icons: IconPosition[];
+  icons: Icon[];
   isLoading: boolean;
   error: string | null;
   setConfig: React.Dispatch<React.SetStateAction<SignConfig>>;
@@ -210,7 +198,7 @@ export const SignProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   // 导出标识
-  const exportSign = async (options: ExportOptions): Promise<string> => {
+  const exportSign = async (_options: ExportOptions): Promise<string> => {
     try {
       // 动态导入html2canvas
       const html2canvas = (await import('html2canvas')).default;
@@ -278,7 +266,7 @@ export const SignProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       value={{
         config,
         templates,
-        icons: config.icons,
+        icons,
         isLoading,
         error,
         setConfig,
